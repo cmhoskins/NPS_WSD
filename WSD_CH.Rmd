@@ -5,6 +5,7 @@ output: html_document
 
 Libraries:
 ```{r}
+# install and load packages using the setup script
 source("setup.R")
 ```
 
@@ -65,15 +66,15 @@ filter_aoi <- function(data) {
 }
 ```
 
-Create objects for select park, state, aoi, and buildings:
+Create objects for select park, aoi(park with buffer), buildings (with buffer), and select buildings:
 ```{r}
-park <- get_select_parks("FIIS")
+park <- get_select_parks("SLBE")
 
 aoi <- get_aoi(park, 1000)
 
 buildings <- get_buildings(park, 1000)
  
-#select_buildings <- get_select_buildings(buildings, "tower", BLDGNAME)
+#select_buildings <- get_select_buildings(buildings, "dundo", BLDGNAME)
 ```
 
 Create maps:
@@ -85,28 +86,28 @@ a <- mapview(park,
   mapview(aoi, 
           alpha.regions = 0.25,
           col.regions = "yellow",
-          layer.name = "AOI") +
-  mapview(buildings %>% st_centroid (),
-          col.regions = "lightpink",
-          layer.name = "Buildings") #+
+          layer.name = "AOI") #+
+  # mapview(buildings %>% st_centroid (),
+  #         col.regions = "lightpink",
+  #         layer.name = "Buildings") +
   # mapview(select_buildings %>% st_centroid(),
   #         col.regions = "tomato",
   #         cex = 8,
   #         layer.name = "Select Buildings")
 
 b <- a + 
-  mapview(ny_select_wells,
+  mapview(mi_select_wells,
           col.regions = "dodgerblue",
            cex = 5,
-          layer.name = 'USGWD') #+
-  # mapview(dewa_idg,
-  #         col.regions = "purple",
-  #         cex = 5,
-  #         layer.name = "DEWA IDG") +
-  # mapview(nj_select_historic,
+          layer.name = 'USGWD') +
+  mapview(mi_select_wells_state,
+          col.regions = "purple",
+          cex = 5,
+          layer.name = "State Wells") #+
+  # mapview(va_select_springs,
   #         col.regions = "orange",
   #         cex = 5,
-  #         layer.name = "DEWA Structures") #+
+  #         layer.name = "Springs") #+
   # # mapview(nj_historic_point,
   #               col.regions = "hotpink",
   #               layer.name = "Building") #+
@@ -125,15 +126,15 @@ b <- a +
 b
 ```
 
-New York - read and select data:
+Michigan - read and select data:
 ```{r}
-ny_wells <- load_csv("data/all/Water_Supply/USGWD-Tabular/USGWD_New_York.csv", "Longitude", "Latitude", crs = 4269)
-ny_wells <- transform_wgs84(ny_wells)
-ny_select_wells <- filter_aoi(ny_wells)
+mi_wells <- load_csv("data/all/Water_Supply/USGWD-Tabular/USGWD_Michigan.csv", "Longitude", "Latitude", crs = 4269)
+mi_wells <- transform_wgs84(mi_wells)
+mi_select_wells <- filter_aoi(mi_wells)
 
-ny_wells_state <- load_csv("data/Water_Supply_Systems/data_sources/New_York/wellspublic.csv", "Surface_Longitude", "Surface_latitude", crs = 4269)
-ny_wells_state <- transform_wgs84(ny_wells_state)
-ny_select_wells_state <- filter_aoi(ny_wells_state)
+mi_wells_state <- st_read("data/Water_Supply_Systems/data_sources/Michigan/state_wells/Michigan_Wellogic_Wells.shp")
+mi_wells_state <- transform_wgs84(mi_wells_state)
+mi_select_wells_state <- filter_aoi(mi_wells_state)
 ```
 
 
@@ -305,6 +306,17 @@ nj_historic_point <- nj_select_historic %>%
   select(-(STATUS:NOTES))
 ```
 
+New York - read and select data:
+```{r}
+ny_wells <- load_csv("data/all/Water_Supply/USGWD-Tabular/USGWD_New_York.csv", "Longitude", "Latitude", crs = 4269)
+ny_wells <- transform_wgs84(ny_wells)
+ny_select_wells <- filter_aoi(ny_wells)
+
+ny_wells_state <- load_csv("data/Water_Supply_Systems/data_sources/New_York/wellspublic.csv", "Surface_Longitude", "Surface_latitude", crs = 4269)
+ny_wells_state <- transform_wgs84(ny_wells_state)
+ny_select_wells_state <- filter_aoi(ny_wells_state)
+```
+
 North Carolina - read and select data:
 ```{r}
 nc_wells <- load_csv("data/all/Water_Supply/USGWD-Tabular/USGWD_North_Carolina.csv", "Longitude", "Latitude", crs = 4269)
@@ -315,26 +327,6 @@ nc_pws <- load_csv("data/Water_Supply_Systems/data_sources/North_Carolina/Public
 nc_pws <- transform_wgs84(nc_pws)
 nc_select_pws <- filter_aoi(nc_pws)
   #dplyr::filter(grepl("name", column_name, ignore.case = TRUE)) #optional filter
-```
-
-Pennsylvania - read and select data:
-```{r}
-pa_wells <- load_csv("data/all/Water_Supply/USGWD-Tabular/USGWD_Pennsylvania.csv", "Longitude", "Latitude", crs = 4269)
-pa_wells <- transform_wgs84(pa_wells)
-pa_select_wells <- filter_aoi(pa_wells)
-
-#Wells by county
-monroe_co_wells <- load_csv("data/Water_Supply_Systems/data_sources/Pennsylvania/Monroe.csv", "Longitude (DD)", "Latitude (DD)", crs = 4326)
-monroe_select_wells <- filter_aoi(monroe_co_wells) %>%
-   filter(grepl("DWGNRA", `Original Owner`, ignore.case = TRUE) | grepl("Milford", `Original Owner`, ignore.case = TRUE))
-
-pike_co_wells <- load_csv("data/Water_Supply_Systems/data_sources/Pennsylvania/Pike.csv", "Longitude (DD)", "Latitude (DD)", crs = 4326)
-pike_select_wells <- filter_aoi(pike_co_wells) %>%
-   filter(grepl("dwgnra", `Original Owner`, ignore.case = TRUE) | grepl("dwgnra", `Original Owner`, ignore.case = TRUE))
-
-# northampton_co_wells <- load_csv("data/Water_Supply_Systems/data_sources/Pennsylvania/Northampton.csv", "Longitude (DD)", "Latitude (DD)", crs = 4326)
-# northampton_select_wells <- filter_aoi(northampton_co_wells) %>%
-#   filter(grepl("DWGNRA", `Original Owner`, ignore.case = TRUE) | grepl("NPS", `Original Owner`, ignore.case = TRUE) | grepl("usgs", `Original Owner`, ignore.case = TRUE))
 ```
 
 South Carolina - read and select data:
@@ -360,12 +352,61 @@ tn_select_wells_state <- filter_aoi(tn_wells_state)
   #dplyr::filter(grepl("name", column_name, ignore.case = TRUE)) #optional filter
 ```
 
+Vermont - read and select data:
+```{r}
+vt_wells <- load_csv("data/all/Water_Supply/USGWD-Tabular/USGWD_Vermont.csv", "Longitude", "Latitude", crs = 4269)
+vt_wells <- transform_wgs84(vt_wells)
+vt_select_wells <- filter_aoi(vt_wells)
+```
+
 Virginia - read and select data:
 ```{r}
 va_wells <- load_csv("data/all/Water_Supply/USGWD-Tabular/USGWD_Virginia.csv", "Longitude", "Latitude", crs = 4269)
 va_wells <- transform_wgs84(va_wells)
 va_select_wells <- filter_aoi(va_wells)
+
+va_wells_state <- read_sf("data/Water_Supply_Systems/data_sources/Virginia/Virginia_wells/Virginia_wells.shp")
+va_wells_state <- transform_wgs84(va_wells_state)
+va_select_wells_state <- filter_aoi(va_wells_state)
+
+va_springs <- st_read("data/Water_Supply_Systems/data_sources/Virginia/EXTERNAL_Spring_Geodatabase_02-06-2023/VDEQ_Spring_Database_02-06-2023.gdb", layer = "VDEQ_Spring_SITES")
+va_springs <- transform_wgs84(va_springs)
+va_select_springs <- filter_aoi(va_springs)
 ```
+
+Pennsylvania - read and select data:
+```{r}
+pa_wells <- load_csv("data/all/Water_Supply/USGWD-Tabular/USGWD_Pennsylvania.csv", "Longitude", "Latitude", crs = 4269)
+pa_wells <- transform_wgs84(pa_wells)
+pa_select_wells <- filter_aoi(pa_wells)
+
+#Wells by county
+# monroe_co_wells <- load_csv("data/Water_Supply_Systems/data_sources/Pennsylvania/Monroe.csv", "Longitude (DD)", "Latitude (DD)", crs = 4326)
+# monroe_select_wells <- filter_aoi(monroe_co_wells) %>%
+#    filter(grepl("DWGNRA", `Original Owner`, ignore.case = TRUE) | grepl("Milford", `Original Owner`, ignore.case = TRUE))
+# 
+# pike_co_wells <- load_csv("data/Water_Supply_Systems/data_sources/Pennsylvania/Pike.csv", "Longitude (DD)", "Latitude (DD)", crs = 4326)
+# pike_select_wells <- filter_aoi(pike_co_wells) %>%
+#    filter(grepl("dwgnra", `Original Owner`, ignore.case = TRUE) | grepl("dwgnra", `Original Owner`, ignore.case = TRUE))
+# 
+# northampton_co_wells <- load_csv("data/Water_Supply_Systems/data_sources/Pennsylvania/Northampton.csv", "Longitude (DD)", "Latitude (DD)", crs = 4326)
+# northampton_select_wells <- filter_aoi(northampton_co_wells) %>%
+#   filter(grepl("DWGNRA", `Original Owner`, ignore.case = TRUE) | grepl("NPS", `Original Owner`, ignore.case = TRUE) | grepl("usgs", `Original Owner`, ignore.case = TRUE))
+
+pa_wells_state <- load_csv("data/Water_Supply_Systems/data_sources/Pennsylvania/GeneralInformation.csv", "Longitude (DD)", "Latitude (DD)", crs = 4326)
+pa_select_wells_state <- filter_aoi(pa_wells_state) #%>%
+   #filter(grepl("DWGNRA", `Original Owner`, ignore.case = TRUE) | grepl("", `Original Owner`, ignore.case = TRUE))
+
+```
+
+West Virginia - read and select data:
+```{r}
+wv_wells <- load_csv("data/all/Water_Supply/USGWD-Tabular/USGWD_West_Virginia.csv", "Longitude", "Latitude", crs = 4269)
+wv_wells <- transform_wgs84(wv_wells)
+wv_select_wells <- filter_aoi(wv_wells)
+```
+
+
 
 Import Water Supply Database
 ```{r}
@@ -387,37 +428,43 @@ source_table_locs <- st_as_sf(
   remove = FALSE
 ) 
 
-
+# filter by region
 select_source_region <- source_table_locs %>%
   dplyr::filter(region == "Northeast Region")
 
+# filter by state
 select_source_state <- source_table_locs %>%
-  dplyr::filter(state == "DE") 
+  dplyr::filter(state == "VT") 
 
+# map of water sources by region
 c <-mapview(select_source_region,
                  col.regions = "hotpink",
                  layer.name = "Water Sources")
 
+# map of water sources by state
 d <- mapview(select_source_state,
              col.regions = "hotpink",
              cex = 9,
              layer.name = "Water Sources")
 
+# get parks for a state
 parks_state <- getParkSystem() %>%
-  filter(STATE == "DE")
+  filter(STATE == "WV")
 
+# map of state water sources and parks
 e <- d + mapview(parks_state) 
 
-# e <- mapview(tn_select_wells) + mapview(tn_select_wells_state) + mapview(select_source_region,
-#                  col.regions = "hotpink",
-#                  layer.name = "Water Sources")
+# map of state usgwd wells and database state water sources
+f <- mapview(vt_select_wells) + mapview(select_source_state,
+                 col.regions = "hotpink",
+                 layer.name = "Water Sources")
 
-e
+c
 ```
 
 View and Tidy WSD
 ```{r}
-# look at what is in the columns
+# options for looking at the data by region
 ## glimpse()
 select_source_region %>%
   glimpse()
@@ -429,15 +476,15 @@ select_source_region %>%
   head()
 
 # remove sources that are not in use
-active_SER <- select_source_region %>%
+active_NER <- select_source_region %>%
   filter(in_use == "Yes")
 
 # map by system_type
 mapview(
   select_source_region,
   zcol = "system_type",
-  label = paste("System Type:", active_SER$system_type, "<br>",
-                "Source Type:", active_SER$source_type))
+  label = paste("System Type:", active_NER$system_type, "<br>",
+                "Source Type:", active_NER$source_type))
 
 # map by source_state
 mapview(
